@@ -1,84 +1,112 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { format } from 'date-fns';
+import { differenceInCalendarDays, format, parseISO } from 'date-fns';
+import type { Intensity } from '../lib/workouts';
 
-interface HistoryEntry {
+export interface HistoryEntry {
+  id: string;
+  /** Local calendar day, `yyyy-MM-dd`. */
   date: string;
   excuse: string;
+  counter_motivation?: string;
   workout_type: string;
+  /** Minutes. Entries from before this was recorded have none. */
+  duration?: number;
+  intensity?: Intensity;
   saved?: boolean;
 }
+
+export type NewExcuse = Omit<HistoryEntry, 'id' | 'date' | 'saved'>;
 
 interface LocalStorageContextType {
   history: HistoryEntry[];
   streak: number;
-  addExcuse: (excuse: string, workout_type: string) => void;
-  toggleSavedExcuse: (date: string, excuse: string) => void;
+  bestStreak: number;
+  addExcuse: (excuse: NewExcuse) => void;
+  toggleSavedExcuse: (id: string) => void;
   getSavedExcuses: () => HistoryEntry[];
 }
 
+const HISTORY_KEY = 'excuseHistory';
+const STREAK_KEY = 'streak';
+const BEST_STREAK_KEY = 'bestStreak';
+
 const LocalStorageContext = createContext<LocalStorageContextType | undefined>(undefined);
 
-export function LocalStorageProvider({ children }: { children: React.ReactNode }) {
-  const [history, setHistory] = useState<HistoryEntry[]>(() => {
-    const saved = localStorage.getItem('excuseHistory');
-    return saved ? JSON.parse(saved) : [];
-  });
+const newId = () =>
+  typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
-  const [streak, setStreak] = useState(() => {
-    const saved = localStorage.getItem('streak');
-    return saved ? JSON.parse(saved) : 0;
-  });
+function readJson<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+/** Entries written by earlier versions have no id; give them one, once. */
+function migrate(entries: unknown): HistoryEntry[] {
+  if (!Array.isArray(entries)) return [];
+  return entries
+    .filter(
+      (entry): entry is Partial<HistoryEntry> & Pick<HistoryEntry, 'excuse' | 'date'> =>
+        typeof entry === 'object' &&
+        entry !== null &&
+        typeof (entry as HistoryEntry).excuse === 'string' &&
+        typeof (entry as HistoryEntry).date === 'string'
+    )
+    .map((entry) => ({
+      ...entry,
+      id: entry.id ?? newId(),
+      workout_type: entry.workout_type ?? 'unknown',
+    }));
+}
+
+export function LocalStorageProvider({ children }: { children: React.ReactNode }) {
+  const [history, setHistory] = useState<HistoryEntry[]>(() => migrate(readJson<unknown>(HISTORY_KEY, [])));
+  const [streak, setStreak] = useState<number>(() => readJson<number>(STREAK_KEY, 0));
+  const [bestStreak, setBestStreak] = useState<number>(() => readJson<number>(BEST_STREAK_KEY, 0));
 
   useEffect(() => {
-    localStorage.setItem('excuseHistory', JSON.stringify(history));
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
   }, [history]);
 
   useEffect(() => {
-    localStorage.setItem('streak', JSON.stringify(streak));
+    localStorage.setItem(STREAK_KEY, JSON.stringify(streak));
   }, [streak]);
 
-  const addExcuse = (excuse: string, workout_type: string) => {
+  useEffect(() => {
+    localStorage.setItem(BEST_STREAK_KEY, JSON.stringify(bestStreak));
+  }, [bestStreak]);
+
+  const addExcuse = (input: NewExcuse) => {
     const today = format(new Date(), 'yyyy-MM-dd');
-    const newEntry = {
-      date: today,
-      excuse,
-      workout_type,
-      saved: false
-    };
+    const entry: HistoryEntry = { id: newId(), date: today, saved: false, ...input };
 
-    const lastEntry = history[0];
-    if (lastEntry && lastEntry.date === today) {
-      setHistory([newEntry, ...history.slice(1)]);
-    } else if (lastEntry && format(new Date(lastEntry.date), 'yyyy-MM-dd') === format(new Date().setDate(new Date().getDate() - 1), 'yyyy-MM-dd')) {
-      setStreak(s => s + 1);
-      setHistory([newEntry, ...history]);
-    } else {
-      setStreak(1);
-      setHistory([newEntry, ...history]);
+    // A streak is consecutive calendar days with at least one excuse.
+    const last = history[0];
+    let nextStreak = 1;
+    if (last) {
+      const gap = differenceInCalendarDays(parseISO(today), parseISO(last.date));
+      if (gap === 0) nextStreak = Math.max(streak, 1);
+      else if (gap === 1) nextStreak = streak + 1;
     }
+
+    setStreak(nextStreak);
+    setBestStreak((best) => Math.max(best, nextStreak));
+    setHistory((previous) => [entry, ...previous]);
   };
 
-  const toggleSavedExcuse = (date: string, excuse: string) => {
-    setHistory(prev => prev.map(entry => {
-      if (entry.date === date && entry.excuse === excuse) {
-        return { ...entry, saved: !entry.saved };
-      }
-      return entry;
-    }));
+  const toggleSavedExcuse = (id: string) => {
+    setHistory((previous) => previous.map((entry) => (entry.id === id ? { ...entry, saved: !entry.saved } : entry)));
   };
 
-  const getSavedExcuses = () => {
-    return history.filter(entry => entry.saved);
-  };
+  const getSavedExcuses = () => history.filter((entry) => entry.saved);
 
   return (
-    <LocalStorageContext.Provider value={{ 
-      history, 
-      streak, 
-      addExcuse, 
-      toggleSavedExcuse,
-      getSavedExcuses 
-    }}>
+    <LocalStorageContext.Provider value={{ history, streak, bestStreak, addExcuse, toggleSavedExcuse, getSavedExcuses }}>
       {children}
     </LocalStorageContext.Provider>
   );

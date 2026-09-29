@@ -1,8 +1,7 @@
-import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, X, Award, Flame, Trophy, Settings } from 'lucide-react';
-import { useNotifications } from '../contexts/NotificationsContext';
+import { Bell, X, Award, Flame, Trophy } from 'lucide-react';
 import { format } from 'date-fns';
+import { useNotifications } from '../contexts/NotificationsContext';
 
 const NotificationIcon = ({ type }: { type: string }) => {
   switch (type) {
@@ -39,16 +38,15 @@ export function NotificationsPanel({ onClose }: { onClose: () => void }) {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={markAllAsRead}
-              className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-            >
-              Mark all as read
-            </button>
-            <button
-              onClick={onClose}
-              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
-            >
+            {unreadCount > 0 && (
+              <button
+                onClick={markAllAsRead}
+                className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              >
+                Mark all as read
+              </button>
+            )}
+            <button onClick={onClose} aria-label="Close notifications" className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
               <X className="h-5 w-5 text-gray-400" />
             </button>
           </div>
@@ -65,9 +63,7 @@ export function NotificationsPanel({ onClose }: { onClose: () => void }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 className={`p-4 ${
-                  notification.read
-                    ? 'bg-white dark:bg-gray-800'
-                    : 'bg-orange-50 dark:bg-orange-900/10'
+                  notification.read ? 'bg-white dark:bg-gray-800' : 'bg-orange-50 dark:bg-orange-900/10'
                 } hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer`}
                 onClick={() => markAsRead(notification.id)}
               >
@@ -75,16 +71,10 @@ export function NotificationsPanel({ onClose }: { onClose: () => void }) {
                   <NotificationIcon type={notification.type} />
                   <div className="flex-1">
                     <p className="font-medium dark:text-white">{notification.title}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                      {notification.message}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-2">
-                      {format(notification.timestamp, 'MMM d, h:mm a')}
-                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{notification.message}</p>
+                    <p className="text-xs text-gray-400 mt-2">{format(notification.timestamp, 'MMM d, yyyy')}</p>
                   </div>
-                  {!notification.read && (
-                    <div className="w-2 h-2 bg-orange-500 rounded-full mt-2" />
-                  )}
+                  {!notification.read && <div className="w-2 h-2 bg-orange-500 rounded-full mt-2" />}
                 </div>
               </motion.div>
             ))
@@ -92,9 +82,7 @@ export function NotificationsPanel({ onClose }: { onClose: () => void }) {
             <div className="p-8 text-center">
               <Bell className="h-8 w-8 text-gray-400 mx-auto mb-3" />
               <p className="text-gray-500 dark:text-gray-400">No notifications yet</p>
-              <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
-                Keep avoiding workouts to earn achievements!
-              </p>
+              <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Keep avoiding workouts to earn achievements!</p>
             </div>
           )}
         </AnimatePresence>
@@ -102,21 +90,9 @@ export function NotificationsPanel({ onClose }: { onClose: () => void }) {
 
       {notifications.length > 0 && (
         <div className="p-4 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={clearNotifications}
-              className="text-sm text-red-500 hover:text-red-600 dark:hover:text-red-400"
-            >
-              Clear all
-            </button>
-            <button
-              onClick={() => {}}
-              className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 flex items-center gap-1"
-            >
-              <Settings className="h-4 w-4" />
-              Notification Settings
-            </button>
-          </div>
+          <button onClick={clearNotifications} className="text-sm text-red-500 hover:text-red-600 dark:hover:text-red-400">
+            Clear all
+          </button>
         </div>
       )}
     </motion.div>
