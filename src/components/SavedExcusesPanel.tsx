@@ -1,8 +1,7 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { BookmarkCheck, X, Calendar, Dumbbell, Trash2 } from 'lucide-react';
 import { useLocalStorage } from '../contexts/LocalStorageContext';
-import { format } from 'date-fns';
+import { formatDay } from '../lib/format';
 
 interface SavedExcusesPanelProps {
   onClose: () => void;
@@ -29,10 +28,7 @@ export function SavedExcusesPanel({ onClose }: SavedExcusesPanelProps) {
             <BookmarkCheck className="h-5 w-5 text-orange-500" />
             Saved Excuses
           </h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
-          >
+          <button onClick={onClose} aria-label="Close" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
             <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
           </button>
         </div>
@@ -42,7 +38,7 @@ export function SavedExcusesPanel({ onClose }: SavedExcusesPanelProps) {
             <div className="space-y-4">
               {savedExcuses.map((excuse, index) => (
                 <motion.div
-                  key={`${excuse.date}-${index}`}
+                  key={excuse.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
@@ -54,7 +50,7 @@ export function SavedExcusesPanel({ onClose }: SavedExcusesPanelProps) {
                       <div className="flex items-center gap-4 mt-2">
                         <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
                           <Calendar className="h-4 w-4" />
-                          {format(new Date(excuse.date), 'MMM d, yyyy')}
+                          {formatDay(excuse.date)}
                         </span>
                         <span className="text-sm text-orange-500 flex items-center gap-1">
                           <Dumbbell className="h-4 w-4" />
@@ -63,7 +59,8 @@ export function SavedExcusesPanel({ onClose }: SavedExcusesPanelProps) {
                       </div>
                     </div>
                     <button
-                      onClick={() => toggleSavedExcuse(excuse.date, excuse.excuse)}
+                      onClick={() => toggleSavedExcuse(excuse.id)}
+                      aria-label="Remove from saved"
                       className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full"
                     >
                       <Trash2 className="h-4 w-4 text-red-500" />
@@ -76,9 +73,7 @@ export function SavedExcusesPanel({ onClose }: SavedExcusesPanelProps) {
             <div className="text-center py-8">
               <BookmarkCheck className="h-12 w-12 text-gray-400 mx-auto mb-3" />
               <p className="text-gray-500 dark:text-gray-400">No saved excuses yet</p>
-              <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
-                Save your favorite excuses for quick access!
-              </p>
+              <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Save your favorite excuses for quick access!</p>
             </div>
           )}
         </div>

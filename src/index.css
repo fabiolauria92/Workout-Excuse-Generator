@@ -70,40 +70,4 @@
     @apply bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100;
   }
 
-  /* React Select Custom Styles */
-  .react-select-container .react-select__control {
-    @apply bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 rounded-xl;
-  }
-
-  .react-select-container .react-select__control--is-focused {
-    @apply border-orange-500 ring-2 ring-orange-500 ring-opacity-50;
-  }
-
-  .react-select-container .react-select__menu {
-    @apply bg-white dark:bg-gray-800 border dark:border-gray-600 rounded-xl shadow-lg;
-  }
-
-  .react-select-container .react-select__option {
-    @apply text-gray-900 dark:text-white cursor-pointer;
-  }
-
-  .react-select-container .react-select__option--is-focused {
-    @apply bg-orange-50 dark:bg-orange-900/20;
-  }
-
-  .react-select-container .react-select__option--is-selected {
-    @apply bg-orange-500 text-white;
-  }
-
-  .react-select-container .react-select__single-value {
-    @apply text-gray-900 dark:text-white;
-  }
-
-  .react-select-container .react-select__input-container {
-    @apply text-gray-900 dark:text-white;
-  }
-
-  .react-select-container .react-select__placeholder {
-    @apply text-gray-500 dark:text-gray-400;
-  }
 }

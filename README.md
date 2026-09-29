@@ -1,133 +1,83 @@
 # Workout Excuse Generator
 
-A beautifully designed web application that helps you generate creative excuses for skipping workouts, built with React, TypeScript, and Tailwind CSS. Features a sleek dark mode, real-time notifications, and achievement tracking.
+Generate creative excuses for skipping workouts, track your streak of avoidance, and earn achievements for it. A small full-stack toy: a React front end and a tiny Express API that picks the excuses.
 
-![Excuse Generator Screenshot](https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1200&h=600&fit=crop)
+![The home dashboard: profile card, streak and time-saved stats, recent excuses](docs/screenshot.png)
 
-## Features
+**Status:** side project, maintained casually. No accounts and no tracking; everything you generate stays in your browser's local storage.
 
-- 🏃‍♂️ Generate creative excuses for different workout types
-- 🌙 Dark mode support
-- 📊 Track your excuse history and statistics
-- 🏆 Earn achievements for your creative avoidance
-- 🔍 Search through your excuse history
-- 🔔 Real-time notifications for achievements and milestones
-- 📱 Responsive design for all devices
-- 🔐 User profiles and preferences
-- 📊 Detailed statistics and analytics
-- 🎯 Streak tracking
+## What it does
 
-## Tech Stack
+- Generates an excuse for a workout type, duration and intensity, with a counter-motivation to keep you honest
+- Keeps a history you can search, filter by type and date range, and save favourites from
+- Tracks your current and best streak of consecutive excuse days
+- Unlocks nine achievements, from *Beginner Procrastinator* to *Marathon Skipper*
+- Charts weekly activity, workout and intensity distribution, and the duration trend
+- Dark mode, a profile with a local avatar, copy or share an excuse
 
-- React 18
-- TypeScript
-- Tailwind CSS
-- Framer Motion
-- Supabase
-- Lucide Icons
-- Date-fns
-- Recharts
-- Zod
+## Quickstart
 
-## Getting Started
+Requires Node.js 20 or newer.
 
-### Prerequisites
-
-- Node.js 18 or higher
-- npm or yarn
-- Supabase account
-
-### Installation
-
-1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/workout-excuse-generator.git
+git clone https://github.com/fabiolauria92/workout-excuse-generator.git
 cd workout-excuse-generator
-```
-
-2. Install dependencies:
-```bash
 npm install
-```
-
-3. Create a `.env` file in the root directory and add your Supabase credentials:
-```env
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
-
-4. Start the development server:
-```bash
 npm run dev
 ```
 
-The app will be available at `http://localhost:5173`
+Open http://localhost:5173. `npm run dev` starts the Vite dev server and the API on port 8000 together; the dev server proxies `/generate-excuse` to the API.
 
-### Building for Production
-
-To create a production build:
+### Production
 
 ```bash
-npm run build
+npm run build   # client → dist/
+npm start       # serves dist/ and the API on http://localhost:8000
 ```
 
-The built files will be in the `dist` directory.
+Set `PORT` to listen elsewhere.
 
-## Project Structure
+## How it is put together
+
+| Path | What it is |
+|---|---|
+| `src/` | React 19, TypeScript and Tailwind. Contexts hold history, streaks, preferences and notifications, all persisted to `localStorage`. |
+| `api/main.js` | Express 5. `POST /generate-excuse` validates the request and answers with an excuse and a counter-motivation. In production it also serves `dist/`. |
+| `api/excuses.js` | The excuse and counter-motivation lists. Add yours here. |
+
+## API
 
 ```
-├── src/
-│   ├── components/      # React components
-│   ├── contexts/        # React context providers
-│   ├── lib/            # Utility functions and configurations
-│   ├── App.tsx         # Main application component
-│   └── main.tsx        # Application entry point
-├── api/                # Backend API handlers
-├── supabase/          # Supabase configurations and migrations
-└── public/            # Static assets
+POST /generate-excuse
+{ "workout_type": "running", "duration": 30, "intensity": "moderate" }
+
+→ { "excuse": "I can't do running today because …",
+    "counter_motivation": "But remember: …",
+    "workout_details": { "workout_type": "running", "duration_minutes": 30, "intensity": "moderate" } }
 ```
 
-## Features in Detail
+Workout types: `running`, `weightlifting`, `yoga`, `swimming`, `cycling`, `HIIT`. Duration 1–180 minutes. Intensity `light`, `moderate` or `intense`. Invalid input gets a `400` with an `error` message.
 
-### Excuse Generation
-- Multiple workout types supported (running, weightlifting, yoga, etc.)
-- Customizable duration and intensity levels
-- Share excuses on social media
-- Save favorite excuses for later use
+## Scripts
 
-### Achievement System
-- Track your progress with achievements
-- Unlock new achievements based on your excuse creativity
-- View your achievement history and progress
+| Script | Does |
+|---|---|
+| `npm run dev` | client and API with hot reload |
+| `npm run build` | production build of the client |
+| `npm start` | serve the build and the API |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | TypeScript |
 
-### Statistics Dashboard
-- Visual representation of your excuse history
-- Track your streak of consecutive days
-- Analyze patterns in your workout avoidance
-- Export statistics for personal analysis
+CI runs lint, typecheck and build on every push and pull request.
 
-### User Preferences
-- Customize your profile
-- Set preferred workout types
-- Configure notification preferences
-- Toggle dark/light mode
-- Manage saved excuses
+## Tech stack
+
+React 19, TypeScript, Vite, Tailwind CSS, Framer Motion, Recharts, Lucide icons, date-fns, Zod, Express.
 
 ## Contributing
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+Issues and pull requests are welcome. Run `npm run lint && npm run typecheck` before opening one.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- Icons by [Lucide](https://lucide.dev)
-- UI components styled with [Tailwind CSS](https://tailwindcss.com)
-- Charts powered by [Recharts](https://recharts.org)
-- Animation by [Framer Motion](https://www.framer.com/motion)
+[MIT](LICENSE) © Fabio Lauria

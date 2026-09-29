@@ -10,19 +10,26 @@ export default tseslint.config(
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
-      ecmaVersion: 2020,
+      ecmaVersion: 2022,
       globals: globals.browser,
     },
-    plugins: {
-      'react-hooks': reactHooks,
-      'react-refresh': reactRefresh,
-    },
-    rules: {
-      ...reactHooks.configs.recommended.rules,
-      'react-refresh/only-export-components': [
-        'warn',
-        { allowConstantExport: true },
-      ],
-    },
+  },
+  {
+    files: ['**/*.{ts,tsx}'],
+    ...(reactHooks.configs.flat?.recommended ?? reactHooks.configs['recommended-latest']),
+  },
+  {
+    files: ['**/*.{ts,tsx}'],
+    ...reactRefresh.configs.vite,
+  },
+  {
+    // Context modules export a provider and its hook together on purpose.
+    files: ['src/contexts/**/*.tsx'],
+    rules: { 'react-refresh/only-export-components': 'off' },
+  },
+  {
+    files: ['api/**/*.js', '*.config.js'],
+    extends: [js.configs.recommended],
+    languageOptions: { ecmaVersion: 2022, globals: globals.node },
   }
 );

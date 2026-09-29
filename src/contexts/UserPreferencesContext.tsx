@@ -1,10 +1,13 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { WORKOUT_TYPES } from '../lib/workouts';
 
-interface UserPreferences {
+export interface UserPreferences {
   nickname: string;
-  avatarUrl?: string;
+  /** Small JPEG data URL produced by the profile form; undefined shows initials. */
+  avatarDataUrl?: string;
+  /** ISO timestamp of the first run on this browser. */
+  firstSeen: string;
   favoriteWorkouts: string[];
-  preferredExcuseTypes: string[];
   notifications: {
     achievements: boolean;
     streaks: boolean;
@@ -13,47 +16,50 @@ interface UserPreferences {
 
 interface UserPreferencesContextType {
   preferences: UserPreferences;
-  updatePreferences: (newPreferences: Partial<UserPreferences>) => void;
+  updatePreferences: (changes: Partial<UserPreferences>) => void;
 }
 
-const defaultPreferences: UserPreferences = {
-  nickname: '',
-  favoriteWorkouts: ['running', 'weightlifting', 'yoga', 'swimming', 'cycling', 'HIIT'],
-  preferredExcuseTypes: ['creative', 'humorous', 'professional', 'weather-related', 'technical'],
-  notifications: {
-    achievements: true,
-    streaks: true
-  }
-};
+const STORAGE_KEY = 'userPreferences';
 
 const UserPreferencesContext = createContext<UserPreferencesContextType | undefined>(undefined);
 
+function load(): UserPreferences {
+  const defaults: UserPreferences = {
+    nickname: '',
+    firstSeen: new Date().toISOString(),
+    favoriteWorkouts: [...WORKOUT_TYPES],
+    notifications: { achievements: true, streaks: true },
+  };
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaults;
+    const saved = JSON.parse(raw) as Partial<UserPreferences>;
+    return {
+      ...defaults,
+      ...saved,
+      notifications: { ...defaults.notifications, ...saved.notifications },
+    };
+  } catch {
+    return defaults;
+  }
+}
+
 export function UserPreferencesProvider({ children }: { children: React.ReactNode }) {
-  const [preferences, setPreferences] = useState<UserPreferences>(() => {
-    const saved = localStorage.getItem('userPreferences');
-    return saved ? { ...defaultPreferences, ...JSON.parse(saved) } : defaultPreferences;
-  });
+  const [preferences, setPreferences] = useState<UserPreferences>(load);
 
   useEffect(() => {
-    localStorage.setItem('userPreferences', JSON.stringify(preferences));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences));
   }, [preferences]);
 
-  const updatePreferences = (newPreferences: Partial<UserPreferences>) => {
-    setPreferences(prev => ({
-      ...prev,
-      ...newPreferences,
-      // Ensure at least one workout type is selected
-      favoriteWorkouts: newPreferences.favoriteWorkouts 
-        ? newPreferences.favoriteWorkouts.length > 0 
-          ? newPreferences.favoriteWorkouts 
-          : prev.favoriteWorkouts
-        : prev.favoriteWorkouts,
-      // Ensure at least one excuse type is selected
-      preferredExcuseTypes: newPreferences.preferredExcuseTypes
-        ? newPreferences.preferredExcuseTypes.length > 0
-          ? newPreferences.preferredExcuseTypes
-          : prev.preferredExcuseTypes
-        : prev.preferredExcuseTypes
+  const updatePreferences = (changes: Partial<UserPreferences>) => {
+    setPreferences((previous) => ({
+      ...previous,
+      ...changes,
+      // The generator needs at least one workout type to offer.
+      favoriteWorkouts:
+        changes.favoriteWorkouts && changes.favoriteWorkouts.length > 0
+          ? changes.favoriteWorkouts
+          : previous.favoriteWorkouts,
     }));
   };
 

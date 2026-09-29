@@ -1,15 +1,5 @@
-import React, { useState } from 'react';
-import { 
-  LayoutGrid, 
-  Dumbbell, 
-  Calendar,
-  Target, 
-  Clock, 
-  Settings,
-  LogOut,
-  Search,
-  Bell,
-} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { LayoutGrid, Dumbbell, Calendar, Target, Clock, Settings, Search, Bell } from 'lucide-react';
 import { useUserPreferences } from './contexts/UserPreferencesContext';
 import { useLocalStorage } from './contexts/LocalStorageContext';
 import { useSearch } from './contexts/SearchContext';
@@ -24,7 +14,14 @@ import { NotificationsPanel } from './components/NotificationsPanel';
 import { SettingsPanel } from './components/SettingsPanel';
 import { UserProfileForm } from './components/UserProfileForm';
 
-const SidebarItem = ({ icon: Icon, label, active, onClick }: { 
+type Tab = 'overview' | 'generate' | 'history' | 'stats' | 'achievements';
+
+const SidebarItem = ({
+  icon: Icon,
+  label,
+  active,
+  onClick,
+}: {
   icon: React.ElementType;
   label: string;
   active?: boolean;
@@ -32,10 +29,9 @@ const SidebarItem = ({ icon: Icon, label, active, onClick }: {
 }) => (
   <button
     onClick={onClick}
+    aria-current={active ? 'page' : undefined}
     className={`flex items-center space-x-3 w-full p-3 rounded-xl transition-colors ${
-      active 
-        ? 'bg-orange-500 text-white' 
-        : 'text-gray-600 hover:bg-orange-100 dark:text-gray-300 dark:hover:bg-gray-700'
+      active ? 'bg-orange-500 text-white' : 'text-gray-600 hover:bg-orange-100 dark:text-gray-300 dark:hover:bg-gray-700'
     }`}
   >
     <Icon className="h-5 w-5" />
@@ -43,45 +39,34 @@ const SidebarItem = ({ icon: Icon, label, active, onClick }: {
   </button>
 );
 
+const readDarkMode = () => {
+  try {
+    const saved = localStorage.getItem('darkMode');
+    if (saved !== null) return JSON.parse(saved) as boolean;
+  } catch {
+    // fall through to the system preference
+  }
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+};
+
 function App() {
   const { preferences } = useUserPreferences();
   const { streak } = useLocalStorage();
   const { searchQuery, setSearchQuery } = useSearch();
   const { unreadCount } = useNotifications();
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showProfileForm, setShowProfileForm] = useState(false);
-  const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem('darkMode');
-    return saved ? JSON.parse(saved) : window.matchMedia('(prefers-color-scheme: dark)').matches;
-  });
+  const [darkMode, setDarkMode] = useState(readDarkMode);
 
-  React.useEffect(() => {
+  useEffect(() => {
     localStorage.setItem('darkMode', JSON.stringify(darkMode));
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    document.documentElement.classList.toggle('dark', darkMode);
   }, [darkMode]);
-
-  const handleViewAll = () => {
-    setActiveTab('history');
-  };
-
-  const handleEditProfile = () => {
-    setShowProfileForm(true);
-  };
-
-  const handleOpenSettings = () => {
-    setShowSettings(true);
-  };
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'overview':
-        return <Overview onViewAll={handleViewAll} onEditProfile={handleEditProfile} onOpenSettings={handleOpenSettings} />;
       case 'generate':
         return <GenerateExcuse />;
       case 'history':
@@ -91,15 +76,20 @@ function App() {
       case 'achievements':
         return <AchievementsPanel />;
       default:
-        return <Overview onViewAll={handleViewAll} onEditProfile={handleEditProfile} onOpenSettings={handleOpenSettings} />;
+        return (
+          <Overview
+            onViewAll={() => setActiveTab('history')}
+            onEditProfile={() => setShowProfileForm(true)}
+            onOpenSettings={() => setShowSettings(true)}
+          />
+        );
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="flex">
-        {/* Sidebar */}
-        <div className="w-64 bg-white dark:bg-gray-800 h-screen p-4 flex flex-col">
+        <aside className="w-64 bg-white dark:bg-gray-800 min-h-screen p-4 flex flex-col">
           <div className="flex items-center space-x-2 mb-8">
             <Dumbbell className="h-8 w-8 text-orange-500" />
             <span className="text-xl font-bold dark:text-white">Excuse Generator</span>
@@ -114,20 +104,19 @@ function App() {
           </nav>
 
           <div className="space-y-2 pt-4 border-t dark:border-gray-700">
-            <SidebarItem icon={Settings} label="Settings" onClick={handleOpenSettings} />
-            <SidebarItem icon={LogOut} label="Logout" />
+            <SidebarItem icon={Settings} label="Settings" onClick={() => setShowSettings(true)} />
           </div>
-        </div>
+        </aside>
 
-        {/* Main Content */}
-        <div className="flex-1 p-8">
-          {/* Header */}
+        <main className="flex-1 p-8">
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-2xl font-bold dark:text-white">
                 {preferences.nickname ? `Welcome back, ${preferences.nickname}!` : 'Welcome to Excuse Generator!'}
               </h1>
-              <p className="text-gray-500 dark:text-gray-400">Current Streak: {streak} days of creative avoidance</p>
+              <p className="text-gray-500 dark:text-gray-400">
+                Current Streak: {streak} {streak === 1 ? 'day' : 'days'} of creative avoidance
+              </p>
             </div>
 
             <div className="flex items-center space-x-4">
@@ -136,15 +125,17 @@ function App() {
                 <input
                   type="text"
                   placeholder="Search excuses..."
+                  aria-label="Search excuses"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(event) => setSearchQuery(event.target.value)}
                   className="pl-10 pr-4 py-2 rounded-xl border dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500 w-64"
                 />
                 <SearchResults />
               </div>
               <div className="relative">
                 <button
-                  onClick={() => setShowNotifications(!showNotifications)}
+                  onClick={() => setShowNotifications((open) => !open)}
+                  aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
                   className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 relative"
                 >
                   <Bell className="h-5 w-5 text-gray-600 dark:text-gray-300" />
@@ -154,28 +145,17 @@ function App() {
                     </span>
                   )}
                 </button>
-                {showNotifications && (
-                  <NotificationsPanel onClose={() => setShowNotifications(false)} />
-                )}
+                {showNotifications && <NotificationsPanel onClose={() => setShowNotifications(false)} />}
               </div>
             </div>
           </div>
 
-          {/* Main Content Area */}
           {renderContent()}
-        </div>
+        </main>
       </div>
 
-      {/* Settings Modal */}
-      {showSettings && (
-        <SettingsPanel
-          onClose={() => setShowSettings(false)}
-          darkMode={darkMode}
-          onDarkModeChange={setDarkMode}
-        />
-      )}
+      {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} darkMode={darkMode} onDarkModeChange={setDarkMode} />}
 
-      {/* Profile Form Modal */}
       {showProfileForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="max-w-2xl w-full">
